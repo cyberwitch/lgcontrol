@@ -18,8 +18,6 @@ import java.io.InputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import de.robv.android.xposed.XSharedPreferences;
-
 /**
  * Created by cyberwitch on 7/10/15.
  */
@@ -38,14 +36,16 @@ public class LGClient {
     }
 
     public void messageCallback(String response) {
-        if (preferences.getClass().equals(SharedPreferences.class)) {
-            Matcher m = sessionPattern.matcher(response);
+        Matcher m = sessionPattern.matcher(response);
 
+        try {
             while (m.find()) {
                 SharedPreferences.Editor editor = preferences.edit();
                 editor.putString("session", m.group(1));
                 editor.apply();
             }
+        } catch (UnsupportedOperationException e) {
+            // This happens if we're being called by Xposed hook, don't worry
         }
     }
 
