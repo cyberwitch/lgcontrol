@@ -80,7 +80,7 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
 
     private boolean isLongPress = false;
 
-    private LGClient lgClient = new LGClient("192.168.1.119", new XSharedPreferences("ch.cyberwit.lgcontrol", "user_settings"));
+    private LGClient lgClient = new LGClient("192.168.1.119", new XSharedPreferences("ch.cyberwit.lgcontrol", "user_settings").getString("pair_code", null));
 
     private static final String LOG = KeyBindings.class.getName();
 }

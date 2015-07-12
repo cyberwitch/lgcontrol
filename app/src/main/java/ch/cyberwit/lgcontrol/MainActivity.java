@@ -1,6 +1,7 @@
 package ch.cyberwit.lgcontrol;
 
 import android.app.Activity;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -16,7 +17,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        lgClient = new LGClient("192.168.1.119", getSharedPreferences("user_settings", MODE_WORLD_READABLE));
+        lgClient = new LGClient("192.168.1.119");
 
         final Button startButton = (Button)findViewById(R.id.startButton);
         startButton.setOnClickListener(new View.OnClickListener() {
@@ -36,8 +37,15 @@ public class MainActivity extends Activity {
         pairButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                String pairCode = textBox.getText().toString();
+
                 try {
-                    lgClient.pair(textBox.getText().toString());
+                    lgClient.pair(pairCode);
+
+                    SharedPreferences preferences = getSharedPreferences("user_settings", MODE_WORLD_READABLE);
+                    SharedPreferences.Editor editor = preferences.edit();
+                    editor.putString("pair_code", pairCode);
+                    editor.apply();
                 } catch (IOException e) {
                     Log.e(TAG, "pairButton onClick", e);
                 }

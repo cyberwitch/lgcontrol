@@ -1,6 +1,5 @@
 package ch.cyberwit.lgcontrol;
 
-import android.content.SharedPreferences;
 import android.net.http.AndroidHttpClient;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -18,69 +17,59 @@ import java.io.InputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Created by cyberwitch on 7/10/15.
- */
 public class LGClient {
-    public LGClient(String ip, SharedPreferences preferences) {
+    public LGClient(String ip) {
         this.ip = ip;
-        this.preferences = preferences;
+    }
+
+    public LGClient(String ip, String pairCode) {
+        this.ip = ip;
+        this.pairCode = pairCode;
     }
 
     public void startPairing() throws IOException {
-        sendMessage("/hdcp/api/auth", "<?xml version='1.0' encoding='utf-8'?><auth><type>AuthKeyReq</type></auth>");
+        Log.d(TAG, "Starting start pairing task");
+        new SendMessageTask(MessageType.START_PAIRING).execute();
     }
 
-    public void pair(String key) throws IOException {
-        sendMessage("/hdcp/api/auth", "<?xml version='1.0' encoding='utf-8'?><auth><type>AuthReq</type><value>" + key + "</value></auth>");
-    }
-
-    public void messageCallback(String response) {
-        Matcher m = sessionPattern.matcher(response);
-
-        try {
-            while (m.find()) {
-                SharedPreferences.Editor editor = preferences.edit();
-                editor.putString("session", m.group(1));
-                editor.apply();
-            }
-        } catch (UnsupportedOperationException e) {
-            // This happens if we're being called by Xposed hook, don't worry
-        }
+    public void pair(String pairCode) throws IOException {
+        Log.d(TAG, "Starting pair task with code: " + pairCode);
+        this.pairCode = pairCode;
+        new SendMessageTask(MessageType.PAIR).execute();
     }
 
     public void sendCommand(int command) throws IOException {
-        sendMessage("/hdcp/api/dtv_wifirc", "<?xml version='1.0' encoding='utf-8'?><command><session>" + preferences.getString("session", "") + "</session><type>HandleKeyInput</type><value>" + command + "</value></command>");
+        Log.d(TAG, "Staring send command task with command: " + command);
+        new SendMessageTask(MessageType.SEND_COMMAND, command).execute();
     }
 
-    private void sendMessage(String endpoint, String data) throws IOException {
-        HttpPost httpPost = new HttpPost("http://" + ip + ":8080" + endpoint);
+    private enum MessageType {
+        START_PAIRING, PAIR, SEND_COMMAND
+    };
 
-        httpPost.setHeader("Content-Type", "application/atom+xml");
+    private class SendMessageTask extends AsyncTask<Void, Void, Void> {
 
-        Log.d(TAG, "trying to send message: " + data);
-
-        httpPost.setEntity(new StringEntity(data));
-
-        new SendMessageTask().execute(httpPost);
-    }
-
-    private class SendMessageTask extends AsyncTask<HttpPost, Void, Void> {
+        public SendMessageTask(MessageType type, int... command) {
+            this.type = type;
+            if (command.length > 0) {
+                this.command = command[0];
+            }
+        }
 
         @Override
-        protected Void doInBackground(HttpPost... params) {
-            HttpClient httpClient = new DefaultHttpClient();
-
+        protected Void doInBackground(Void... params) {
             try {
-                HttpResponse httpResponse = httpClient.execute(params[0]);
-
-                String encoding = EntityUtils.getContentCharSet(httpResponse.getEntity());
-                encoding = encoding == null ? "UTF-8" : encoding;
-
-                InputStream stream = AndroidHttpClient.getUngzippedContent(httpResponse.getEntity());
-                InputStreamEntity unzEntity = new InputStreamEntity(stream, -1);
-
-                messageCallback(EntityUtils.toString(unzEntity, encoding));
+                switch(type) {
+                    case START_PAIRING:
+                        startPairing();
+                        break;
+                    case PAIR:
+                        pair();
+                        break;
+                    case SEND_COMMAND:
+                        sendCommand();
+                        break;
+                }
             } catch (IOException e) {
                 Log.e(TAG, "doInBackground", e);
             }
@@ -88,11 +77,63 @@ public class LGClient {
             return null;
         }
 
+        private void startPairing() throws IOException {
+            Log.d(TAG, "About to start pairing");
+            sendMessage("/hdcp/api/auth", "<?xml version='1.0' encoding='utf-8'?><auth><type>AuthKeyReq</type></auth>");
+        }
+
+        private void pair() throws IOException {
+            Log.d(TAG, "About to pair");
+            HttpResponse httpResponse = sendMessage("/hdcp/api/auth", "<?xml version='1.0' encoding='utf-8'?><auth><type>AuthReq</type><value>" + pairCode + "</value></auth>");
+
+            String encoding = EntityUtils.getContentCharSet(httpResponse.getEntity());
+            encoding = encoding == null ? "UTF-8" : encoding;
+
+            InputStream stream = AndroidHttpClient.getUngzippedContent(httpResponse.getEntity());
+            InputStreamEntity unzEntity = new InputStreamEntity(stream, -1);
+
+            Matcher m = sessionPattern.matcher(EntityUtils.toString(unzEntity, encoding));
+
+            while (m.find()) {
+                sessionCode = m.group(1);
+                Log.d(TAG, "Got session code: " + sessionCode);
+            }
+        }
+
+        private void sendCommand() throws IOException {
+            Log.d(TAG, "About to send command: " + command);
+            HttpResponse httpResponse = sendMessage("/hdcp/api/dtv_wifirc", "<?xml version='1.0' encoding='utf-8'?><command><session>" + sessionCode + "</session><type>HandleKeyInput</type><value>" + command + "</value></command>");
+            Log.d(TAG, "Response code: " + httpResponse.getStatusLine().getStatusCode());
+            if (httpResponse.getStatusLine().getStatusCode() == 401) {
+                pair();
+                Log.d(TAG, "Resending command: " + command);
+                httpResponse = sendMessage("/hdcp/api/dtv_wifirc", "<?xml version='1.0' encoding='utf-8'?><command><session>" + sessionCode + "</session><type>HandleKeyInput</type><value>" + command + "</value></command>");
+                Log.d(TAG, "Response code: " + httpResponse.getStatusLine().getStatusCode());
+            }
+        }
+
+        private HttpResponse sendMessage(String endpoint, String data) throws IOException {
+            HttpPost httpPost = new HttpPost("http://" + ip + ":8080" + endpoint);
+
+            httpPost.setHeader("Content-Type", "application/atom+xml");
+
+            Log.d(TAG, "trying to send message: " + data);
+
+            httpPost.setEntity(new StringEntity(data));
+
+            HttpClient httpClient = new DefaultHttpClient();
+            return httpClient.execute(httpPost);
+        }
+
+        private MessageType type;
+        private int command;
+
         private final String TAG = SendMessageTask.class.getName();
     }
 
     private String ip;
-    private SharedPreferences preferences;
+    private String pairCode;
+    private String sessionCode;
 
     private Pattern sessionPattern = Pattern.compile("<session>(\\S+)</session>");
 
