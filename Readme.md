@@ -17,5 +17,4 @@ TODO
 ----
 - Remove the hardcoded ip address - LG TVs broadcast their identity over a slight variant of UPnP.
 - Pop up a capitalized keyboard when pairing, since the code is case sensitive.
-- Debounce http requests.
 - Allow for custom key mapping.

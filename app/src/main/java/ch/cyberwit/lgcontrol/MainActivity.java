@@ -42,7 +42,8 @@ public class MainActivity extends Activity {
                 try {
                     lgClient.pair(pairCode);
 
-                    SharedPreferences preferences = getSharedPreferences("user_settings", MODE_WORLD_READABLE);
+                    SharedPreferences preferences =
+                            getSharedPreferences("user_settings", MODE_WORLD_READABLE);
                     SharedPreferences.Editor editor = preferences.edit();
                     editor.putString("pair_code", pairCode);
                     editor.apply();

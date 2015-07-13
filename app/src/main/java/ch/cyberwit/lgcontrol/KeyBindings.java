@@ -26,7 +26,9 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
 	@Override
 	public void handleLoadPackage(LoadPackageParam lpparam) throws Throwable
 	{
-		XposedBridge.hookAllMethods(XposedHelpers.findClass("com.android.internal.policy.impl.PhoneWindowManager", lpparam.classLoader), "interceptKeyBeforeDispatching", new XC_MethodHook() {
+		XposedBridge.hookAllMethods(
+                XposedHelpers.findClass("com.android.internal.policy.impl.PhoneWindowManager",
+                        lpparam.classLoader), "interceptKeyBeforeDispatching", new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 KeyEvent event = (KeyEvent) param.args[1];
@@ -45,7 +47,9 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
                             timeLastKeyPressed = 0;
                         }
                         param.setResult(-1);
-                    } else if (menuKeyPressed && (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) && action == KeyEvent.ACTION_DOWN) {
+                    } else if (menuKeyPressed && (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+                            keyCode == KeyEvent.KEYCODE_DPAD_DOWN) &&
+                            action == KeyEvent.ACTION_DOWN) {
                         long now = new Date().getTime();
                         if (keyCode != lastKeyPressed || timeLastKeyPressed + 100 <= now) {
                             lastKeyPressed = keyCode;
@@ -93,6 +97,8 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
     private int lastKeyPressed = 0;
     private long timeLastKeyPressed = 0;
 
-    private XSharedPreferences preferences = new XSharedPreferences(KeyBindings.class.getPackage().getName(), "user_settings");
-    private LGClient lgClient = new LGClient("192.168.1.119", preferences.getString("pair_code", null));
+    private XSharedPreferences preferences =
+            new XSharedPreferences(KeyBindings.class.getPackage().getName(), "user_settings");
+    private LGClient lgClient =
+            new LGClient("192.168.1.119", preferences.getString("pair_code", null));
 }

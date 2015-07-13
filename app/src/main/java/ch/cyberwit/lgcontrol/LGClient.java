@@ -83,12 +83,15 @@ public class LGClient {
 
         private void startPairing() throws IOException {
             Log.d(TAG, "About to start pairing");
-            sendMessage("/hdcp/api/auth", "<?xml version='1.0' encoding='utf-8'?><auth><type>AuthKeyReq</type></auth>");
+            sendMessage("/hdcp/api/auth",
+                    "<?xml version='1.0' encoding='utf-8'?><auth><type>AuthKeyReq</type></auth>");
         }
 
         private void pair() throws IOException {
             Log.d(TAG, "About to pair");
-            HttpResponse httpResponse = sendMessage("/hdcp/api/auth", "<?xml version='1.0' encoding='utf-8'?><auth><type>AuthReq</type><value>" + pairCode + "</value></auth>");
+            HttpResponse httpResponse = sendMessage("/hdcp/api/auth",
+                    "<?xml version='1.0' encoding='utf-8'?><auth><type>AuthReq</type><value>" +
+                            pairCode + "</value></auth>");
 
             String encoding = EntityUtils.getContentCharSet(httpResponse.getEntity());
             encoding = encoding == null ? "UTF-8" : encoding;
@@ -106,12 +109,18 @@ public class LGClient {
 
         private void sendCommand() throws IOException {
             Log.d(TAG, "About to send command: " + command);
-            HttpResponse httpResponse = sendMessage("/hdcp/api/dtv_wifirc", "<?xml version='1.0' encoding='utf-8'?><command><session>" + sessionCode + "</session><type>HandleKeyInput</type><value>" + command + "</value></command>");
+            HttpResponse httpResponse = sendMessage("/hdcp/api/dtv_wifirc",
+                    "<?xml version='1.0' encoding='utf-8'?><command><session>" + sessionCode +
+                            "</session><type>HandleKeyInput</type><value>" + command +
+                            "</value></command>");
             Log.d(TAG, "Response code: " + httpResponse.getStatusLine().getStatusCode());
             if (httpResponse.getStatusLine().getStatusCode() == 401) {
                 pair();
                 Log.d(TAG, "Resending command: " + command);
-                httpResponse = sendMessage("/hdcp/api/dtv_wifirc", "<?xml version='1.0' encoding='utf-8'?><command><session>" + sessionCode + "</session><type>HandleKeyInput</type><value>" + command + "</value></command>");
+                httpResponse = sendMessage("/hdcp/api/dtv_wifirc",
+                        "<?xml version='1.0' encoding='utf-8'?><command><session>" + sessionCode +
+                                "</session><type>HandleKeyInput</type><value>" + command +
+                                "</value></command>");
                 Log.d(TAG, "Response code: " + httpResponse.getStatusLine().getStatusCode());
             }
         }
