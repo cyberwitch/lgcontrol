@@ -27,6 +27,10 @@ public class LGClient {
         this.pairCode = pairCode;
     }
 
+    public void setPairCode(String pairCode) {
+        this.pairCode = pairCode;
+    }
+
     public void startPairing() throws IOException {
         Log.d(TAG, "Starting start pairing task");
         new SendMessageTask(MessageType.START_PAIRING).execute();

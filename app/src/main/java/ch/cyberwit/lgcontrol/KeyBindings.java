@@ -21,7 +21,6 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
 	@Override
 	public void initZygote(StartupParam startupParam) throws Throwable
 	{
-
 	}
 
 	@Override
@@ -52,6 +51,12 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
                             lastKeyPressed = keyCode;
                             timeLastKeyPressed = now;
                             secondKeyPressed = true;
+
+                            if (preferences.hasFileChanged()) {
+                                preferences.reload();
+                                lgClient.setPairCode(preferences.getString("pair_code", null));
+                            }
+
                             lgClient.sendCommand(keyCode == KeyEvent.KEYCODE_DPAD_UP ? 2 : 3);
                         }
                         param.setResult(-1);
@@ -88,5 +93,6 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
     private int lastKeyPressed = 0;
     private long timeLastKeyPressed = 0;
 
-    private LGClient lgClient = new LGClient("192.168.1.119", new XSharedPreferences("ch.cyberwit.lgcontrol", "user_settings").getString("pair_code", null));
+    private XSharedPreferences preferences = new XSharedPreferences(KeyBindings.class.getPackage().getName(), "user_settings");
+    private LGClient lgClient = new LGClient("192.168.1.119", preferences.getString("pair_code", null));
 }
