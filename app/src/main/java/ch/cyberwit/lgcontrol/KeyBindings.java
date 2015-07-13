@@ -6,7 +6,7 @@ import android.view.InputDevice;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 
-import java.util.Arrays;
+import java.util.Date;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.IXposedHookZygoteInit;
@@ -27,28 +27,32 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
 	@Override
 	public void handleLoadPackage(LoadPackageParam lpparam) throws Throwable
 	{
-		// For some reason, findAndHookMethod doesn't work for this
 		XposedBridge.hookAllMethods(XposedHelpers.findClass("com.android.internal.policy.impl.PhoneWindowManager", lpparam.classLoader), "interceptKeyBeforeDispatching", new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 KeyEvent event = (KeyEvent) param.args[1];
                 int action = event.getAction();
                 int keyCode = event.getKeyCode();
-                int repeatCount = event.getRepeatCount();
 
                 if (event.getDeviceId() != KeyCharacterMap.VIRTUAL_KEYBOARD) {
-                    if (keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_MEDIA_FAST_FORWARD) {
+                    if (keyCode == KeyEvent.KEYCODE_MENU) {
                         if (action == KeyEvent.ACTION_DOWN) {
-                            if (repeatCount > 0) {
-                                isLongPress = true;
-                                lgClient.sendCommand(keyCode == KeyEvent.KEYCODE_MENU ? 2 : 3);
-                            } else {
-                                isLongPress = false;
-                            }
-                        } else if (action == KeyEvent.ACTION_UP) {
-                            if (!isLongPress) {
-                                injectKey(keyCode);
-                            }
+                            menuKeyPressed = true;
+                        } else if (menuKeyPressed && action == KeyEvent.ACTION_UP) {
+                            if (secondKeyPressed) injectKey(keyCode);
+                            menuKeyPressed = false;
+                            secondKeyPressed = false;
+                            lastKeyPressed = 0;
+                            timeLastKeyPressed = 0;
+                        }
+                        param.setResult(-1);
+                    } else if (menuKeyPressed && (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) && action == KeyEvent.ACTION_DOWN) {
+                        long now = new Date().getTime();
+                        if (keyCode != lastKeyPressed || timeLastKeyPressed + 100 <= now) {
+                            lastKeyPressed = keyCode;
+                            timeLastKeyPressed = now;
+                            secondKeyPressed = true;
+                            lgClient.sendCommand(keyCode == KeyEvent.KEYCODE_DPAD_UP ? 2 : 3);
                         }
                         param.setResult(-1);
                     }
@@ -78,9 +82,11 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
 
     }
 
-    private boolean isLongPress = false;
+    private boolean menuKeyPressed = false;
+    private boolean secondKeyPressed = false;
+
+    private int lastKeyPressed = 0;
+    private long timeLastKeyPressed = 0;
 
     private LGClient lgClient = new LGClient("192.168.1.119", new XSharedPreferences("ch.cyberwit.lgcontrol", "user_settings").getString("pair_code", null));
-
-    private static final String LOG = KeyBindings.class.getName();
 }
