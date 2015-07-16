@@ -40,7 +40,7 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
                         if (action == KeyEvent.ACTION_DOWN) {
                             menuKeyPressed = true;
                         } else if (menuKeyPressed && action == KeyEvent.ACTION_UP) {
-                            if (secondKeyPressed) injectKey(keyCode);
+                            if (!secondKeyPressed) injectKey(keyCode);
                             menuKeyPressed = false;
                             secondKeyPressed = false;
                             lastKeyPressed = 0;
