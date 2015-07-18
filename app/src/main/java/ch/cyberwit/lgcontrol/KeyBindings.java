@@ -48,7 +48,8 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
                         }
                         param.setResult(-1);
                     } else if (menuKeyPressed && (keyCode == KeyEvent.KEYCODE_DPAD_UP ||
-                            keyCode == KeyEvent.KEYCODE_DPAD_DOWN) &&
+                            keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
+                            keyCode == KeyEvent.KEYCODE_DPAD_CENTER) &&
                             action == KeyEvent.ACTION_DOWN) {
                         long now = new Date().getTime();
                         if (keyCode != lastKeyPressed || timeLastKeyPressed + 100 <= now) {
@@ -61,7 +62,13 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
                                 lgClient.setPairCode(preferences.getString("pair_code", null));
                             }
 
-                            lgClient.sendCommand(keyCode == KeyEvent.KEYCODE_DPAD_UP ? 2 : 3);
+                            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                                lgClient.volumeUp();
+                            } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN){
+                                lgClient.volumeDown();
+                            } else {
+                                lgClient.toggleTV();
+                            }
                         }
                         param.setResult(-1);
                     }

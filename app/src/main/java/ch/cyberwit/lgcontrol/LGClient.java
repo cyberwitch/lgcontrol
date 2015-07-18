@@ -2,11 +2,13 @@ package ch.cyberwit.lgcontrol;
 
 import android.net.http.AndroidHttpClient;
 import android.os.AsyncTask;
+import android.os.IBinder;
 import android.util.Log;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -14,6 +16,8 @@ import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,13 +46,43 @@ public class LGClient {
         new SendMessageTask(MessageType.PAIR).execute();
     }
 
+    public void toggleTV() throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Log.d(TAG, "Starting toggle tv task");
+        new SendMessageTask(MessageType.TOGGLE_TV).execute();
+    }
+
+    public void turnTVOff() throws IOException {
+        sendCommand(8);
+    }
+
+    public void volumeUp() throws IOException {
+        sendCommand(2);
+    }
+
+    public void volumeDown() throws IOException {
+        sendCommand(3);
+    }
+
     public void sendCommand(int command) throws IOException {
         Log.d(TAG, "Staring send command task with command: " + command);
         new SendMessageTask(MessageType.SEND_COMMAND, command).execute();
     }
 
+    public void turnTVOn() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        ClassLoader loader = ClassLoader.getSystemClassLoader();
+        Class serviceManager = loader.loadClass("android.os.ServiceManager");
+        Class settingsMgr = loader.loadClass("com.amazon.device.settings.IAmazonSystemSettingsManager");
+        Class settingsMgrStub = loader.loadClass("com.amazon.device.settings.IAmazonSystemSettingsManager$Stub");
+        Method getService = serviceManager.getMethod("getService", new Class[]{String.class});
+        Method callOneTouch = settingsMgr.getMethod("sendAsynchronousCECOneTouchCmd", new Class[]{});
+        Method asInterface = settingsMgrStub.getMethod("asInterface", new Class[]{IBinder.class});
+        IBinder ibinder = (IBinder)getService.invoke(null, new Object[]{"amazon_audio_video"});
+        Object settingsMgrInst = asInterface.invoke(null, new Object[]{ibinder});
+        callOneTouch.invoke(settingsMgrInst, new Object[]{});
+    }
+
     private enum MessageType {
-        START_PAIRING, PAIR, SEND_COMMAND
+        START_PAIRING, PAIR, SEND_COMMAND, TOGGLE_TV
     };
 
     private class SendMessageTask extends AsyncTask<Void, Void, Void> {
@@ -73,8 +107,11 @@ public class LGClient {
                     case SEND_COMMAND:
                         sendCommand();
                         break;
+                    case TOGGLE_TV:
+                        toggleTV();
+                        break;
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 Log.e(TAG, "doInBackground", e);
             }
 
@@ -104,6 +141,17 @@ public class LGClient {
             while (m.find()) {
                 sessionCode = m.group(1);
                 Log.d(TAG, "Got session code: " + sessionCode);
+            }
+        }
+
+        private void toggleTV() throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+            command = 8;
+
+            try {
+                sendCommand();
+            }
+            catch (HttpHostConnectException e) {
+                turnTVOn();
             }
         }
 

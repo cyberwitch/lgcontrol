@@ -9,7 +9,6 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import java.io.IOException;
-
 public class MainActivity extends Activity {
 
     @Override
