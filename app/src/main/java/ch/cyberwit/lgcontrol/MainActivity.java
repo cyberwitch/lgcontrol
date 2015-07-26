@@ -16,13 +16,21 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        lgClient = new LGClient("192.168.1.119");
+        final EditText ipTextBox = (EditText)findViewById(R.id.ip);
 
         final Button startButton = (Button)findViewById(R.id.startButton);
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                String ip = ipTextBox.getText().toString();
+                lgClient = new LGClient(ip);
+
                 try {
+                    SharedPreferences preferences =
+                            getSharedPreferences("user_settings", MODE_WORLD_READABLE);
+                    SharedPreferences.Editor editor = preferences.edit();
+                    editor.putString("ip", ip);
+                    editor.apply();
                     lgClient.startPairing();
                 } catch (IOException e) {
                     Log.e(TAG, "startButton onClick", e);
@@ -36,18 +44,20 @@ public class MainActivity extends Activity {
         pairButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String pairCode = textBox.getText().toString();
+                if (lgClient != null) {
+                    String pairCode = textBox.getText().toString();
 
-                try {
-                    lgClient.pair(pairCode);
+                    try {
+                        lgClient.pair(pairCode);
 
-                    SharedPreferences preferences =
-                            getSharedPreferences("user_settings", MODE_WORLD_READABLE);
-                    SharedPreferences.Editor editor = preferences.edit();
-                    editor.putString("pair_code", pairCode);
-                    editor.apply();
-                } catch (IOException e) {
-                    Log.e(TAG, "pairButton onClick", e);
+                        SharedPreferences preferences =
+                                getSharedPreferences("user_settings", MODE_WORLD_READABLE);
+                        SharedPreferences.Editor editor = preferences.edit();
+                        editor.putString("pair_code", pairCode);
+                        editor.apply();
+                    } catch (IOException e) {
+                        Log.e(TAG, "pairButton onClick", e);
+                    }
                 }
             }
         });

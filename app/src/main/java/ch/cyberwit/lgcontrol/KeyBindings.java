@@ -59,6 +59,7 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
 
                             if (preferences.hasFileChanged()) {
                                 preferences.reload();
+                                lgClient.setIp(preferences.getString("ip", null));
                                 lgClient.setPairCode(preferences.getString("pair_code", null));
                             }
 
@@ -107,5 +108,5 @@ public class KeyBindings implements IXposedHookZygoteInit, IXposedHookLoadPackag
     private XSharedPreferences preferences =
             new XSharedPreferences(KeyBindings.class.getPackage().getName(), "user_settings");
     private LGClient lgClient =
-            new LGClient("192.168.1.119", preferences.getString("pair_code", null));
+            new LGClient(preferences.getString("ip", null), preferences.getString("pair_code", null));
 }

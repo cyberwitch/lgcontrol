@@ -35,6 +35,10 @@ public class LGClient {
         this.pairCode = pairCode;
     }
 
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
     public void startPairing() throws IOException {
         Log.d(TAG, "Starting start pairing task");
         new SendMessageTask(MessageType.START_PAIRING).execute();
