@@ -10,6 +10,4 @@ Only the TV-on command is done via CEC, as this is the only command I reverse en
 
 TODO
 ----
-- Automate TV IP detection - LG TVs broadcast their identity over a slight variant of UPnP.
-- Internally capitalize pair code, since the code is case sensitive and Fire TV launching caps keyboard seems broken.
 - Allow for custom key mapping.
